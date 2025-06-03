@@ -54,33 +54,52 @@ graph TD
 
 ## 核心模块
 
-### 1. 意图识别模块 (`intent_detection.py`)
+### 1. 主程序 (`main.py`)
 ```python
-def detect_intent(text: str) -> str:
-    """识别用户意图"""
+class CampusAssistant:
+    """校园智能助手GUI主程序"""
     # 实现细节...
 ```
 - **功能**:
-  - 使用正则表达式进行关键词匹配
-  - 识别两类意图：问候/闲聊(GREETING)和学校相关问题(SCHOOL_RELATED)
-  - SCHOOL_RELATED包含学业、校园服务、活动、生活等详细分类
-- **依赖**: 正则表达式(re)
+  - 提供基于tkinter的图形用户界面
+  - 处理用户登录/注册
+  - 管理话题选择和聊天界面
+  - 集成NLP处理和数据库功能
+- **特点**:
+  - 响应式UI设计
+  - 支持游客模式和注册用户
+  - 对话历史记录功能
 
-### 2. 信息检索模块 (`retrieval.py`)
+### 2. NLP处理模块 (`nlp_processor.py`)
 ```python
-def retrieve_info(topic: str, query: str) -> str:
-    """根据主题和查询检索信息"""
+class NLPProcessor:
+    """处理自然语言查询"""
     # 实现细节...
 ```
 - **功能**:
-  - 基于OpenAI API的文档检索
-  - 支持10个校园相关话题的智能检索
-  - 包含话题匹配和关键词筛选功能
-- **依赖**: OpenAI SDK
+  - 意图识别(GREETING/SCHOOL_RELATED/UNKNOWN)
+  - 处理问候类查询
+  - 调用OpenAI API生成回答
+  - 结合话题内容进行检索
+- **依赖**: OpenAI SDK, topic_registry
 
-### 3. 用户管理模块 (`database.py`)
+### 3. 话题管理 (`topic_registry.py`)
 ```python
-class UserDB:
+class TopicRegistry:
+    """管理校园话题内容"""
+    # 实现细节...
+```
+- **功能**:
+  - 管理10个校园话题的定义
+  - 加载和缓存话题内容
+  - 提供话题检索功能
+- **特点**:
+  - 自动加载data/topics/下的Markdown文件
+  - 支持关键词匹配话题
+
+### 4. 数据库管理 (`database.py`)
+```python
+class DatabaseManager:
     """管理用户数据和对话历史"""
     # 实现细节...
 ```
@@ -88,39 +107,54 @@ class UserDB:
   - SQLite数据库存储
   - 用户认证与密码哈希(bcrypt)
   - 聊天记录存储
-  - 使用SQLAlchemy ORM
-- **依赖**: SQLAlchemy, bcrypt
+  - 用户偏好设置管理
+- **特点**:
+  - 使用bcrypt安全存储密码
+  - 轻量级ORM实现
 
-### 4. 数据模型 (`models.py`)
+### 5. 话题定义 (`TopicDefinition`类)
 ```python
 @dataclass
-class TopicDocument:
-    title: str          # 文档标题
-    keywords: list[str] # 关键词列表
-    content: str        # 文档内容
-    qa_pairs: list[tuple[str, str]] # 问答对
+class TopicDefinition:
+    """单个话题的定义"""
+    # 实现细节...
 ```
-- **用途**: 存储校园各主题的完整信息
-- **特点**:
-  - 支持多关键词检索
-  - 包含详细内容和关联问答
-  - 结构化存储便于检索处理
+- **属性**:
+  - display_name: 显示名称
+  - keywords: 关键词列表
+  - data_file: 数据文件路径
+  - description: 话题描述
+  - content: 文件内容
 
-## 数据目录结构
+## 文件结构
 ```
-data/
-├── jieba_dict.txt       # 中文分词词典
-└── topics/              # 校园主题文档
-    ├── Academic_Resources.md
-    ├── Basic_Life_Services.md
-    ├── Campus_Activities.md
-    ├── Campus_and_Nearby_Dining_Options.md
-    ├── Campus_Navigation_and_Facilities.md
-    ├── Campus_Policies_and_Safety.md
-    ├── Course_Selection_Guide.md
-    ├── Important_Contact_Numbers.md
-    ├── Procedures_and_Processes.md
-    ├── Surrounding_Transportation.md
+.
+├── main.py                # 主程序入口
+├── config.py              # 配置文件
+├── database.py            # 数据库管理
+├── document_loader.py     # 文档加载器
+├── models.py              # 数据模型
+├── nlp_processor.py       # NLP处理核心
+├── topic_registry.py      # 话题管理
+├── user_json.py           # 用户数据辅助
+├── requirements.txt       # 依赖列表
+├── README.md              # 项目文档
+├── data/                  # 数据文件
+│   ├── jieba_dict.txt     # 中文分词词典
+│   └── topics/            # 校园主题文档
+│       ├── Academic_Resources.md
+│       ├── Basic_Life_Services.md
+│       ├── Campus_Activities_and_Events.md
+│       ├── Campus_and_Nearby_Dining_Options.md
+│       ├── Campus_Navigation_and_Facilities.md
+│       ├── Campus_Policies_and_Safety.md
+│       ├── Course_Selection_Guide.md
+│       ├── Important_Contact_Numbers.md
+│       ├── Procedures_and_Processes.md
+│       └── Surrounding_Transportation.md
+└── tests/                 # 测试代码
+    ├── test_database.py
+    └── test_nlp_processor.py
 ```
 
 ## 安装指南
@@ -179,7 +213,47 @@ pytest tests/
 - 主题文档表(topics)
 
 ## 使用示例
-1. 启动系统后选择话题(如"学术资源")
-2. 输入问题："如何申请图书馆延期？"
-3. 系统将返回详细的解答流程和相关注意事项
+
+1. 启动系统
+```bash
+python main.py
+```
+
+2. 登录或使用游客模式
+   - 注册用户: 输入用户名和密码
+   - 游客模式: 直接点击"游客模式"按钮
+
+3. 选择话题
+   - 从10个校园话题中选择一个(如"学术资源")
+
+4. 开始问答
+   - 输入问题:"如何申请图书馆延期？"
+   - 系统将返回详细的解答流程
+
+5. 查看历史记录(仅登录用户)
+   - 点击"查看历史记录"按钮查看过往对话
+
+## 开发指南
+
+### 添加新话题
+1. 在`data/topics/`下创建新的Markdown文件
+2. 在`topic_registry.py`的`_initialize_topics()`方法中添加新话题定义:
+```python
+"new_topic": TopicDefinition(
+    display_name="新话题名称",
+    keywords=["关键词1", "关键词2"],
+    data_file="data/topics/新话题文件.md",
+    description="话题描述"
+)
+```
+
+### 修改UI样式
+编辑`main.py`中的`CampusAssistant`类的样式配置部分:
+```python
+style.configure('TButton', 
+    font=('微软雅黑', 12),
+    foreground='white',
+    background='#4a98f7'
+)
+```
 ```
