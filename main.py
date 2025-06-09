@@ -43,6 +43,31 @@
 
 """
 
+"""
+校园智能助手主程序模块 - 详细注释版
+
+本模块实现了校园智能助手的图形用户界面(GUI)和核心功能逻辑，采用MVC-like架构：
+- Model: database.py, nlp_processor.py 处理数据和业务逻辑
+- View: 本文件中的GUI组件 (tkinter实现)
+- Controller: CampusAssistant类协调模型和视图
+
+主要功能流程:
+1. 初始化应用程序 (加载配置、创建主窗口)
+2. 用户认证 (登录/注册/游客模式)
+3. 话题选择 (用户选择感兴趣的主题)
+4. 聊天交互 (处理用户查询并生成回答)
+5. 历史记录管理 (保存和查看对话历史)
+
+关键设计特点:
+- 模块化设计: 功能分离到不同模块
+- 响应式GUI: 使用ttk主题和自定义样式
+- 状态管理: 跟踪当前用户、话题和对话历史
+- 错误处理: 异常捕获和用户友好提示
+- 动画效果: 消息发送/接收动画增强用户体验
+
+注意: 本文件是应用程序的入口点和核心控制器，协调各模块工作。
+"""
+
 import os
 import time
 from nlp_processor import NLPProcessor
@@ -61,59 +86,62 @@ if not os.getenv("OPENAI_API_KEY"):
 
 class CampusAssistant:
     """
-    校园智能助手核心类，负责管理整个应用程序的生命周期和功能实现。
+    校园智能助手核心类 (控制器)
 
-    该类封装了校园智能助手的所有功能，包括:
-    - 用户界面构建和管理
-    - 用户认证流程
-    - 话题选择和问答处理
-    - 对话历史记录管理
-    - 与外部服务(OpenAI API)的集成
+    职责:
+    - 管理应用程序生命周期
+    - 协调用户界面和业务逻辑
+    - 处理用户交互事件
+    - 维护应用程序状态
 
-    主要属性:
-        root (tk.Tk): 主Tkinter窗口对象
-        current_user (dict): 当前登录用户的信息字典
-        chat_history (list): 当前会话的聊天记录列表
-        nlp_processor: NLP处理模块实例
-        db: 数据库操作模块实例
+    关键属性说明:
+        root: 主Tkinter窗口 (应用程序容器)
+        current_user: 当前登录用户 (None表示游客模式)
+        current_topic: 当前选择的话题ID (academic, life_services等)
+        message_history: 当前会话的消息历史 (用于上下文对话)
+        nlp_processor: NLP处理实例 (负责查询理解和响应生成)
+        user_manager: 用户数据库管理实例 (处理用户认证和历史存储)
 
-    主要方法:
-        __init__: 初始化应用程序并构建GUI
-        show_login_window: 显示登录/注册界面
-        setup_chat_interface: 构建聊天主界面
-        login_user: 处理用户登录逻辑
-        register_user: 处理用户注册逻辑
-        handle_query: 处理用户查询并生成回答
-        update_chat_history: 更新并显示聊天历史
+    状态管理:
+        - 用户状态: 登录用户/游客
+        - 话题状态: 当前选择的话题
+        - 界面状态: 当前显示的界面 (登录/话题选择/聊天)
 
-    使用示例:
-        >>> assistant = CampusAssistant()
-        >>> assistant.run()  # 启动应用程序
-
-    注意事项:
-        1. 需要先正确配置.env文件中的OPENAI_API_KEY
-        2. 数据库模块需要提前初始化
-        3. GUI样式依赖于ttk的clam主题
+    设计模式:
+        - 观察者模式: GUI事件绑定到处理方法
+        - 分层架构: 分离界面、控制和数据处理
+        - 状态模式: 不同界面对应不同的状态和行为
     """
 
     def __init__(self):
         """
-        初始化校园智能助手应用程序。
+        应用程序初始化 (构造函数)
 
-        该方法负责:
-        1. 初始化核心功能模块(NLP处理器和用户数据库)
-        2. 配置GUI全局样式和主题
-        3. 创建主窗口和容器
-        4. 显示初始登录界面
+        关键初始化步骤:
+        1. 核心模块初始化: 
+           - NLP处理器 (自然语言理解与生成)
+           - 用户数据库管理器 (用户认证和历史存储)
+        2. 状态初始化:
+           - current_user: None (未登录)
+           - current_topic: None (未选择话题)
+           - message_history: 空列表 (无对话历史)
+        3. GUI系统初始化:
+           - 创建主窗口 (root)
+           - 配置全局样式 (主题/颜色/字体)
+           - 创建主容器框架 (main_container)
+        4. 显示初始界面 (登录窗口)
 
-        属性初始化:
-            nlp_processor: NLP处理模块实例
-            user_manager: 用户数据库管理实例
-            current_user: 当前登录用户(初始为None)
-            current_topic: 当前选择的话题(初始为None)
-            root: 主Tkinter窗口对象
-            main_container: 主内容容器框架
-            chat_history: 当前会话的对话历史记录
+        样式配置说明:
+           - 主题: 'clam' (ttk内置主题)
+           - 配色方案: 
+                primary_color = '#4a98f7' (主色调-蓝)
+                secondary_color = '#e8f4ff' (辅助色-浅蓝)
+                background_color = '#f8fbff' (背景色)
+                text_color = '#2c3e50' (文字色)
+                accent_color = '#2ecc71' (强调色-绿)
+           - 组件样式: 为按钮、标签、输入框等定义统一风格
+
+        注意: 所有GUI组件都使用ttk样式系统，确保界面一致性和可维护性。
         """
         # 初始化核心功能模块
         self.nlp_processor = NLPProcessor()  # 自然语言处理模块
@@ -199,19 +227,36 @@ class CampusAssistant:
 
     def show_login_window(self):
         """
-        显示登录/注册界面。
+        构建并显示登录/注册界面
 
-        该方法负责:
-        1. 清理当前界面内容
-        2. 构建登录界面框架和布局
-        3. 创建用户名和密码输入表单
-        4. 添加登录、注册和游客模式按钮
-        5. 设置初始焦点和界面美化
+        GUI结构:
+        [标题框架]
+          |- 主标题: "校园智能助手"
+          |- 副标题: "用户登录"
 
-        界面元素:
-            - 标题区域: 显示应用名称和"用户登录"提示
-            - 表单区域: 用户名和密码输入框
-            - 按钮区域: 登录、注册和游客模式按钮
+        [表单框架]
+          |- 用户名标签和输入框
+          |- 密码标签和输入框
+
+        [按钮容器]
+          |- 登录按钮 (绑定login_user方法)
+          |- 注册按钮 (绑定register_user方法)
+          |- 游客模式按钮 (绑定guest_mode方法)
+          |- 退出按钮 (销毁窗口)
+
+        布局技术:
+          - 使用Frame嵌套实现层次结构
+          - grid布局管理表单元素
+          - pack布局管理整体框架
+          - 边距(padx/pady)创建呼吸空间
+
+        用户体验优化:
+          - 输入框自动聚焦 (username_entry.focus_set())
+          - 密码字段掩码显示 (show='*')
+          - 统一按钮样式和交互状态
+          - 响应式布局 (fill/expand选项)
+
+        注意: 此方法会清除main_container中所有现有组件，然后重建登录界面。
         """
         # 清理当前界面 - 移除所有现有组件
         for widget in self.main_container.winfo_children():
@@ -325,25 +370,23 @@ class CampusAssistant:
 
     def login_user(self):
         """
-        处理用户登录逻辑。
+        用户登录处理逻辑
 
-        该方法负责:
-        1. 获取并验证用户输入
-        2. 调用数据库验证用户凭证
-        3. 处理登录成功/失败情况
-        4. 更新应用程序状态
+        步骤:
+        1. 获取输入: 从GUI输入框获取用户名和密码
+        2. 输入验证: 检查非空 (空输入显示警告)
+        3. 凭证验证: 通过user_manager.verify_user检查数据库
+        4. 状态切换:
+           - 成功: 设置current_user -> 显示话题选择界面
+           - 失败: 显示错误提示
+        5. 异常处理: 捕获数据库异常并显示错误
 
-        流程:
-            1. 获取用户名和密码输入
-            2. 检查输入是否为空
-            3. 调用数据库验证用户
-            4. 根据验证结果:
-               - 成功: 更新当前用户并显示话题选择界面
-               - 失败: 显示错误消息
-            5. 捕获并处理可能的数据库错误
+        安全考虑:
+           - 密码在内存中以明文暂存 (短暂存在)
+           - 数据库验证使用安全比对 (数据库模块处理)
+           - 错误消息不透露具体系统细节 (防止信息泄露)
 
-        异常处理:
-            - 捕获数据库操作异常并显示友好错误消息
+        注意: 登录成功后，应用程序状态变为认证用户状态，可访问历史记录等功能。
         """
         # 获取并清理输入
         username = self.username_entry.get().strip()
@@ -369,30 +412,23 @@ class CampusAssistant:
 
     def register_user(self):
         """
-        处理用户注册逻辑。
+        用户注册处理逻辑
 
-        该方法负责:
-        1. 获取并验证用户输入
-        2. 检查用户名是否已存在
-        3. 调用数据库创建新用户
-        4. 处理注册成功/失败情况
-        5. 更新应用程序状态
+        步骤:
+        1. 获取输入: 从GUI输入框获取用户名和密码
+        2. 输入验证: 检查非空 (空输入显示警告)
+        3. 用户创建: 通过user_manager.create_user创建新用户
+        4. 冲突处理: 用户名已存在时显示错误
+        5. 状态切换:
+           - 成功: 设置current_user -> 显示话题选择界面
+           - 失败: 保持登录界面
+        6. 异常处理: 捕获数据库异常并显示错误
 
-        流程:
-            1. 从输入框获取用户名和密码
-            2. 检查输入是否为空
-            3. 调用数据库创建用户
-            4. 根据操作结果:
-               - 成功: 更新当前用户并跳转到话题选择界面
-               - 失败: 显示相应错误消息
-            5. 捕获并处理可能的数据库错误
+        安全考虑:
+           - 密码在数据库中应哈希存储 (由数据库模块处理)
+           - 用户名需满足数据库约束 (长度、字符集等)
 
-        输入要求:
-            - 用户名: 非空字符串
-            - 密码: 非空字符串
-
-        异常处理:
-            - 捕获数据库操作异常并显示友好错误消息
+        注意: 注册成功后自动登录并进入话题选择界面。
         """
         # 获取并清理输入
         username = self.username_entry.get().strip()
@@ -421,7 +457,37 @@ class CampusAssistant:
         self.show_topic_selection()
 
     def setup_chat_interface(self):
-        """创建聊天界面组件"""
+        """
+        构建聊天界面组件
+
+        界面结构:
+        [聊天记录框] (带滚动条)
+          |- 消息显示区域 (Text组件)
+          |- 垂直滚动条
+
+        [输入控制区]
+          |- 消息输入框 (Entry组件)
+          |- 清除按钮 (清除聊天记录)
+          |- 发送按钮 (触发消息处理)
+
+        [状态栏] (底部)
+          |- 显示当前状态和最后更新时间
+
+        关键组件说明:
+          1. chat_history: Text组件, 显示对话内容
+          2. user_input: Entry组件, 用户输入消息
+          3. send_btn: 发送按钮, 绑定on_send方法
+          4. clear_btn: 清除按钮, 绑定clear_chat方法
+          5. status_bar: 状态标签, 显示系统状态
+
+        样式特性:
+          - 聊天消息气泡样式 (通过tag实现)
+          - 响应式布局 (随窗口缩放)
+          - 动画效果 (消息发送/接收动画)
+          - 状态提示 (实时状态更新)
+
+        注意: 此方法创建所有聊天界面组件，但不显示欢迎消息 (由set_topic触发)
+        """
         # 保存组件引用以便后续销毁
         self.chat_frame = ttk.Frame(self.root, style='TFrame')
         self.chat_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -525,6 +591,36 @@ class CampusAssistant:
         print("聊天记录更新完成")  # 调试信息
 
     def update_chat_history(self, message: str, role: str):
+        """
+        更新聊天历史显示 (核心渲染方法)
+
+        功能:
+        1. 将消息添加到聊天记录文本框
+        2. 根据消息角色应用不同样式
+        3. 实现消息发送/接收动画效果
+        4. 自动滚动到底部显示最新消息
+
+        参数:
+          message: 消息内容字符串
+          role: 消息角色 ('user'或'assistant')
+
+        渲染逻辑:
+          - 用户消息: 蓝色气泡 (右侧显示)
+          - 助手消息: 绿色气泡 (左侧显示)
+          - 添加时间戳和角色标签
+
+        动画效果:
+          - 用户消息: "发送中..."动画
+          - 助手消息: 逐字显示效果 (模拟输入过程)
+
+        技术实现:
+          1. 使用Text组件的tag系统定义样式
+          2. 定时器模拟动画效果 (time.sleep)
+          3. 状态栏实时更新
+          4. 自动滚动 (see tk.END)
+
+        注意: 此方法会修改聊天记录组件的状态 (normal->disabled切换)
+        """
         self.chat_history.configure(state='normal')
 
         # 获取当前时间
@@ -602,7 +698,37 @@ class CampusAssistant:
             text=f"当前话题: {topic_name} | 最后消息: {timestamp} | 状态: 就绪")
 
     def show_topic_selection(self):
-        # 清除现有界面
+        """
+        显示话题选择界面
+
+        界面特点:
+          - 网格布局话题按钮 (2列)
+          - 可滚动区域 (支持大量话题)
+          - 响应式设计 (按钮自适应大小)
+          - 视觉分组 (使用Frame容器)
+
+        话题数据结构:
+          [ (topic_id, display_name, description), ... ]
+
+        按钮功能:
+          - 每个话题按钮绑定set_topic方法
+          - 历史记录按钮 (登录用户可见)
+          - 退出程序按钮
+
+        布局技术:
+          1. Canvas+Scrollbar实现可滚动区域
+          2. grid布局管理话题按钮
+          3. 动态行/列配置 (grid_rowconfigure/columnconfigure)
+          4. 样式映射 (Topic.TButton样式)
+
+        注意: 此界面是应用程序的主导航界面，登录状态影响可用功能。
+        """
+        # 清除所有现有界面组件（除了main_container）
+        for widget in self.root.winfo_children():
+            if widget != self.main_container:
+                widget.destroy()
+
+        # 清除主容器内的组件
         for widget in self.main_container.winfo_children():
             widget.destroy()
 
@@ -657,30 +783,46 @@ class CampusAssistant:
         scrollable_frame.grid_columnconfigure(0, weight=1)
         scrollable_frame.grid_columnconfigure(1, weight=1)
 
-        # 添加话题按钮 - 使用网格布局
+        # 配置话题按钮样式 - 先于按钮创建
+        style = ttk.Style()
+        style.configure('Topic.TButton',
+                        font=('微软雅黑', 14),  # 增大字号
+                        padding=(15, 12),      # 增加内边距
+                        foreground='#333',
+                        background='#e8f4f8',
+                        wraplength=300)        # 设置自动换行
+        style.map('Topic.TButton',
+                  background=[('active', '#d0e8f0'), ('pressed', "#96bbce")])
+
+        # 添加话题按钮 - 使用网格布局并填充空间
         for i, (topic_id, display_name, desc) in enumerate(topics):
             row = i // 2
             col = i % 2
+
+            # 创建带自动换行的按钮文本
+            btn_text = f'{display_name}\n({topic_id})\n{desc}'
+
             btn = ttk.Button(
                 scrollable_frame,
-                text=f'{display_name} ({topic_id})\n{desc}',
+                text=btn_text,
                 command=lambda t=topic_id: self.set_topic(t),
                 style='Topic.TButton',
-                width=45
             )
-            btn.grid(row=row, column=col, padx=10, pady=10, sticky='nsew')
+            # 使用sticky='nsew'让按钮填充整个网格单元
+            btn.grid(row=row, column=col, padx=15,
+                     pady=15, sticky='nsew')  # 增加边距
 
-        # 布局Canvas和滚动条
+            # 配置按钮所在的行和列权重为1，使其可扩展
+            scrollable_frame.grid_rowconfigure(row, weight=1)
+            scrollable_frame.grid_columnconfigure(col, weight=1)
+
+        # 布局Canvas和滚动条 - 确保Canvas填充整个可用空间
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # 配置话题按钮样式
-        style = ttk.Style()
-        style.configure('Topic.TButton', font=('微软雅黑', 13),
-                        padding=10, foreground='#333',
-                        background='#e8f4f8')
-        style.map('Topic.TButton',
-                  background=[('active', '#d0e8f0'), ('pressed', "#96bbce")])
+        # 配置主框架的权重，确保Canvas可扩展
+        main_frame.grid_rowconfigure(0, weight=1)
+        main_frame.grid_columnconfigure(0, weight=1)
 
         # 添加底部按钮区域（垂直排列）
         button_container = ttk.Frame(main_frame)
@@ -726,7 +868,12 @@ class CampusAssistant:
         return topic_map.get(topic_id, "通用话题")
 
     def set_topic(self, topic_id: str):
-        # 清除现有界面
+        # 清除所有现有界面组件
+        for widget in self.root.winfo_children():
+            if widget != self.main_container:  # 保留主容器
+                widget.destroy()
+
+        # 清除主容器内的组件
         for widget in self.main_container.winfo_children():
             widget.destroy()
 
@@ -785,7 +932,35 @@ class CampusAssistant:
         return True
 
     def handle_query(self, user_input: str) -> str:
-        """处理用户输入"""
+        """
+        处理用户查询 (核心业务逻辑)
+
+        功能流程:
+        1. 特殊命令处理:
+           - 话题切换 ("切换", "change")
+           - 调试模式控制 ("开启调试"/"关闭调试")
+
+        2. 普通查询处理:
+           a. 准备查询参数:
+              - 用户输入文本
+              - 当前话题ID
+              - 最近的对话历史 (最后10条)
+           b. 调用NLP处理器生成响应
+           c. 更新消息历史
+           d. 记录对话历史到数据库 (登录用户)
+
+        3. 返回助手响应
+
+        关键组件交互:
+          - nlp_processor.process_query: 生成自然语言响应
+          - user_manager.log_chat: 记录对话历史 (数据库)
+
+        状态管理:
+          - 维护message_history列表 (当前会话历史)
+          - 跟踪current_topic (当前话题上下文)
+
+        注意: 此方法连接用户界面和NLP处理核心，是系统的关键路径。
+        """
         # 处理话题切换命令
         if user_input.lower() in ["切换", "change"]:
             self.show_topic_selection()
@@ -874,7 +1049,22 @@ class CampusAssistant:
 
 
 def main():
-    """主程序入口"""
+    """
+    应用程序主入口
+
+    功能:
+    1. 检查调试模式配置
+    2. 创建CampusAssistant实例
+    3. 启动主事件循环 (mainloop)
+
+    执行流程:
+      if __name__ == "__main__":
+          -> 调用main()
+          -> 创建CampusAssistant实例
+          -> 启动GUI主循环
+
+    注意: 这是应用程序的启动点，直接执行此文件时运行。
+    """
     from config import Config
     if Config.DEBUG:
         print("=== 调试模式已启用 ===")
